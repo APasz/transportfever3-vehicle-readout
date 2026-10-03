@@ -6,6 +6,8 @@ local entity_window_hud = ug_require "::/gui/entity_window/entity_window_hud.tl"
 local gui_react_util = ug_require "::/gui/main/gui_react_util.tl" as GuiReactUtil
 local hud_icon_toolbox = ug_require "::/gui/main/hud_icon_toolbox.tl" as HudIconToolbox
 local lang_util = ug_require "::/scripts/lang_util.tl" as LangUtil
+local debugLoggingEnabled = ug_require "apasz_vehicle_readout::/vehicle_readout/logging_config.tl" as boolean
+local logging = ug_require "apasz_vehicle_readout::/vehicle_readout/logging.lua" as ModLogging.Module
 local mathutil = ug_require "::/scripts/mathutil.lua" as MathUtil
 local notification_react_util = ug_require "::/game_mechanics/notifications/types/notification_react_util.tl" as NotificationReactUtil
 local react = ug_require "::/gui/main/react.lua" as React
@@ -15,6 +17,7 @@ local vehicle_react_util = ug_require "::/gui/line_vehicle_mgmt/vehicle_react_ut
 local vehicle_util = ug_require "::/gui/line_vehicle_mgmt/vehicle_util.tl" as VehicleUtil
 
 local MOD_ID = "apasz_vehicle_readout"
+local logger = logging.new("Vehicle Readout", debugLoggingEnabled)
 local VISIBILITY_PARAM_KEY = "apasz_vehicle_readout_visibility"
 local ADDITIONAL_VEHICLE_VISIBILITY_PARAM_KEY = "apasz_vehicle_readout_additional_vehicle_visibility"
 local SHOW_VEHICLE_NAME_PARAM_KEY = "apasz_vehicle_readout_show_vehicle_name"
@@ -180,17 +183,17 @@ local function readMappedParam<T>(
 		return defaultValue
 	end
 	if type(rawValue) ~= "number" then
-		error("Vehicle Readout parameter '" .. key .. "' must be a number")
+		return logger.fail("Parameter '" .. key .. "' must be a number")
 	end
 
 	local numericValue = rawValue as number
 	if numericValue ~= math.floor(numericValue) then
-		error("Vehicle Readout parameter '" .. key .. "' must be an integer")
+		return logger.fail("Parameter '" .. key .. "' must be an integer")
 	end
 
 	local value = values[numericValue as integer]
 	if value == nil then
-		error("Vehicle Readout parameter '" .. key .. "' has invalid value " .. tostring(numericValue))
+		return logger.fail("Parameter '" .. key .. "' has invalid value " .. tostring(numericValue))
 	end
 	return value
 end
@@ -332,7 +335,7 @@ end
 local function unregisterUiVisibilitySubscription(entity : Engine.Entity)
 	local subscriptionCount = uiVisibilitySubscriptionCounts[entity]
 	if subscriptionCount == nil then
-		error("Attempted to unregister an unknown Vehicle Readout UI visibility subscription")
+		logger.fail("Attempted to unregister an unknown UI visibility subscription")
 	elseif subscriptionCount == 1 then
 		uiVisibilitySubscriptionCounts[entity] = nil
 		uiVisibilityByEntity[entity] = nil
@@ -907,7 +910,7 @@ local function getUtf8SequenceLength(firstByte : integer) : integer
 	elseif firstByte >= 240 and firstByte <= 244 then
 		return 4
 	end
-	error("Invalid UTF-8 leading byte in Vehicle Readout label: " .. tostring(firstByte))
+	return logger.fail("Invalid UTF-8 leading byte in label: " .. tostring(firstByte))
 end
 
 local function truncateNamedIndicatorLabel(label : string) : string
@@ -916,7 +919,7 @@ local function truncateNamedIndicatorLabel(label : string) : string
 	while byteIndex <= #label do
 		local firstByte = string.byte(label, byteIndex)
 		if firstByte == nil then
-			error("Failed to read UTF-8 byte from Vehicle Readout label")
+			return logger.fail("Failed to read UTF-8 byte from label")
 		end
 		local sequenceLength = getUtf8SequenceLength(firstByte as integer)
 		local characterWidth = sequenceLength == 1 and 1 or 2
@@ -924,12 +927,12 @@ local function truncateNamedIndicatorLabel(label : string) : string
 			return string.sub(label, 1, byteIndex - 1) .. ELLIPSIS
 		end
 		if byteIndex + sequenceLength - 1 > #label then
-			error("Incomplete UTF-8 sequence in Vehicle Readout label")
+			return logger.fail("Incomplete UTF-8 sequence in label")
 		end
 		for offset = 1, sequenceLength - 1 do
 			local continuationByte = string.byte(label, byteIndex + offset)
 			if continuationByte == nil or continuationByte < 128 or continuationByte > 191 then
-				error("Invalid UTF-8 continuation byte in Vehicle Readout label")
+				return logger.fail("Invalid UTF-8 continuation byte in label")
 			end
 		end
 		byteIndex = byteIndex + sequenceLength

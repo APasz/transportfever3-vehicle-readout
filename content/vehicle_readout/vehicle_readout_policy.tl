@@ -1,3 +1,7 @@
+local debugLoggingEnabled = ug_require "apasz_vehicle_readout::/vehicle_readout/logging_config.tl" as boolean
+local logging = ug_require "apasz_vehicle_readout::/vehicle_readout/logging.lua" as ModLogging.Module
+local logger = logging.new("Vehicle Readout", debugLoggingEnabled)
+
 local vehicle_readout_policy : VehicleReadoutPolicy = {}
 
 vehicle_readout_policy.shouldShowForVehicle = function(
@@ -11,7 +15,7 @@ vehicle_readout_policy.shouldShowForVehicle = function(
 		and visibility ~= "SelectedVehicle"
 		and visibility ~= "None"
 	then
-		error("Unhandled Vehicle Readout visibility: " .. tostring(visibility))
+		return logger.fail("Unhandled visibility: " .. tostring(visibility))
 	end
 
 	if isAdditionallyVisible or visibility == "All" then
@@ -34,7 +38,7 @@ vehicle_readout_policy.getHiddenStatePresentation = function(
 	elseif stateKind == "EnRoute" or stateKind == "AtTerminal" or stateKind == "InDepot" then
 		return "Hidden"
 	end
-	error("Unhandled Vehicle Readout operational state: " .. tostring(stateKind))
+	return logger.fail("Unhandled operational state: " .. tostring(stateKind))
 end
 
 vehicle_readout_policy.resolveStateDisplay = function(
@@ -47,7 +51,7 @@ vehicle_readout_policy.resolveStateDisplay = function(
 		and hiddenPresentation ~= "Icon"
 		and hiddenPresentation ~= "Label"
 	then
-		error("Unhandled Vehicle Readout hidden-state presentation: " .. tostring(hiddenPresentation))
+		return logger.fail("Unhandled hidden-state presentation: " .. tostring(hiddenPresentation))
 	end
 
 	if hiddenPresentation == "Label" then
@@ -71,7 +75,7 @@ vehicle_readout_policy.shouldShowNextStop = function(
 	elseif destinationKind == "None" or destinationKind == "Depot" then
 		return false
 	end
-	error("Unhandled Vehicle Readout destination kind: " .. tostring(destinationKind))
+	return logger.fail("Unhandled destination kind: " .. tostring(destinationKind))
 end
 
 return vehicle_readout_policy

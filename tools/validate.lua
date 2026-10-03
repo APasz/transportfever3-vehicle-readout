@@ -77,7 +77,9 @@ local function checkTeal(path, label)
 end
 
 checkTeal(gameRoot .. "/vscode-template/all_def.tl", "Game definitions")
+checkTeal(modRoot .. "/logging_def.d.tl", "Shared logging definitions")
 checkTeal(modRoot .. "/vehicle_readout_def.d.tl", "Vehicle Readout definitions")
+checkTeal(modRoot .. "/content/vehicle_readout/logging_config.tl", "Vehicle Readout logging config")
 local policyResult = checkTeal(modRoot .. "/content/vehicle_readout/vehicle_readout_policy.tl", "Vehicle Readout policy")
 checkTeal(modRoot .. "/content/vehicle_readout/vehicle_readout.script.tl", "Vehicle Readout UI")
 
@@ -86,6 +88,16 @@ assert(generatedPolicy ~= nil, generationError)
 local policyEnvironment = {
 	error = error,
 	tostring = tostring,
+	ug_require = function(moduleName)
+		if moduleName == "apasz_vehicle_readout::/vehicle_readout/logging_config.tl" then
+			return false
+		end
+		assert(
+			moduleName == "apasz_vehicle_readout::/vehicle_readout/logging.lua",
+			"Unexpected policy dependency: " .. tostring(moduleName)
+		)
+		return dofile(modRoot .. "/content/vehicle_readout/logging.lua")
+	end,
 }
 local policyChunk = assert(load(generatedPolicy, "@vehicle_readout_policy.tl", "t", policyEnvironment))
 local policy = policyChunk()
