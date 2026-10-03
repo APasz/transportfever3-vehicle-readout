@@ -1,0 +1,151 @@
+{
+    "cosmetic": true,
+    "dependencies": null,
+    "incompatibilities": null,
+    "modId": "apasz_vehicle_readout",
+    "options": null,
+    "visible": true,
+    "params": [
+        {
+            "defaultIndex": 1,
+            "key": "apasz_vehicle_readout_visibility",
+            "name": "APASZ_VEHICLE_READOUT_VISIBILITY",
+            "tooltip": "APASZ_VEHICLE_READOUT_VISIBILITY_TOOLTIP",
+            "uiType": "ComboBox",
+            "values": [
+                "APASZ_VEHICLE_READOUT_VISIBILITY_ALL",
+                "APASZ_VEHICLE_READOUT_VISIBILITY_SELECTED_LINE",
+                "APASZ_VEHICLE_READOUT_VISIBILITY_SELECTED_VEHICLE",
+                "APASZ_VEHICLE_READOUT_VISIBILITY_NONE"
+            ]
+        },
+        {
+            "defaultIndex": 3,
+            "key": "apasz_vehicle_readout_additional_vehicle_visibility",
+            "name": "APASZ_VEHICLE_READOUT_ADDITIONAL_VEHICLE_VISIBILITY",
+            "tooltip": "APASZ_VEHICLE_READOUT_ADDITIONAL_VEHICLE_VISIBILITY_TOOLTIP",
+            "uiType": "ComboBox",
+            "values": [
+                "APASZ_VEHICLE_READOUT_ADDITIONAL_NEITHER",
+                "APASZ_VEHICLE_READOUT_ADDITIONAL_DETAIL_WINDOW",
+                "APASZ_VEHICLE_READOUT_ADDITIONAL_FOLLOWED",
+                "APASZ_VEHICLE_READOUT_ADDITIONAL_BOTH"
+            ]
+        },
+        {
+            "defaultIndex": 2,
+            "key": "apasz_vehicle_readout_speed_style",
+            "name": "APASZ_VEHICLE_READOUT_SHOW_SPEED",
+            "tooltip": "APASZ_VEHICLE_READOUT_SHOW_SPEED_TOOLTIP",
+            "uiType": "ComboBox",
+            "values": [
+                "APASZ_VEHICLE_READOUT_OFF",
+                "APASZ_VEHICLE_READOUT_SPEED_BELOW",
+                "APASZ_VEHICLE_READOUT_SPEED_ABOVE"
+            ]
+        },
+        {
+            "defaultIndex": 1,
+            "key": "apasz_vehicle_readout_show_load_percentage",
+            "name": "APASZ_VEHICLE_READOUT_SHOW_LOAD_PERCENTAGE",
+            "tooltip": "APASZ_VEHICLE_READOUT_SHOW_LOAD_PERCENTAGE_TOOLTIP",
+            "uiType": "CheckBox",
+            "values": [
+                "APASZ_VEHICLE_READOUT_OFF",
+                "APASZ_VEHICLE_READOUT_ON"
+            ]
+        },
+        {
+            "defaultIndex": 0,
+            "key": "apasz_vehicle_readout_show_quality",
+            "name": "APASZ_VEHICLE_READOUT_SHOW_QUALITY",
+            "tooltip": "APASZ_VEHICLE_READOUT_SHOW_QUALITY_TOOLTIP",
+            "uiType": "CheckBox",
+            "values": [
+                "APASZ_VEHICLE_READOUT_OFF",
+                "APASZ_VEHICLE_READOUT_ON"
+            ]
+        },
+        {
+            "defaultIndex": 0,
+            "key": "apasz_vehicle_readout_show_next_stop",
+            "name": "APASZ_VEHICLE_READOUT_SHOW_DESTINATION",
+            "tooltip": "APASZ_VEHICLE_READOUT_SHOW_DESTINATION_TOOLTIP",
+            "uiType": "CheckBox",
+            "values": [
+                "APASZ_VEHICLE_READOUT_OFF",
+                "APASZ_VEHICLE_READOUT_ON"
+            ]
+        },
+        {
+            "defaultIndex": 0,
+            "key": "apasz_vehicle_readout_show_state",
+            "name": "APASZ_VEHICLE_READOUT_SHOW_STATE",
+            "tooltip": "APASZ_VEHICLE_READOUT_SHOW_STATE_TOOLTIP",
+            "uiType": "CheckBox",
+            "values": [
+                "APASZ_VEHICLE_READOUT_OFF",
+                "APASZ_VEHICLE_READOUT_ON"
+            ]
+        },
+        {
+            "defaultIndex": 0,
+            "key": "apasz_vehicle_readout_show_line",
+            "name": "APASZ_VEHICLE_READOUT_SHOW_LINE",
+            "tooltip": "APASZ_VEHICLE_READOUT_SHOW_LINE_TOOLTIP",
+            "uiType": "CheckBox",
+            "values": [
+                "APASZ_VEHICLE_READOUT_OFF",
+                "APASZ_VEHICLE_READOUT_ON"
+            ]
+        },
+        {
+            "defaultIndex": 0,
+            "key": "apasz_vehicle_readout_show_condition",
+            "name": "APASZ_VEHICLE_READOUT_SHOW_CONDITION",
+            "tooltip": "APASZ_VEHICLE_READOUT_SHOW_CONDITION_TOOLTIP",
+            "uiType": "CheckBox",
+            "values": [
+                "APASZ_VEHICLE_READOUT_OFF",
+                "APASZ_VEHICLE_READOUT_ON"
+            ]
+        },
+        {
+            "defaultIndex": 0,
+            "key": "apasz_vehicle_readout_show_vehicle_name",
+            "name": "APASZ_VEHICLE_READOUT_SHOW_VEHICLE_NAME",
+            "tooltip": "APASZ_VEHICLE_READOUT_SHOW_VEHICLE_NAME_TOOLTIP",
+            "uiType": "CheckBox",
+            "values": [
+                "APASZ_VEHICLE_READOUT_OFF",
+                "APASZ_VEHICLE_READOUT_ON"
+            ]
+        },
+        {
+            "defaultIndex": 3,
+            "key": "apasz_vehicle_readout_update_interval",
+            "name": "APASZ_VEHICLE_READOUT_UPDATE_INTERVAL",
+            "tooltip": "APASZ_VEHICLE_READOUT_UPDATE_INTERVAL_TOOLTIP",
+            "uiType": "ComboBox",
+            "values": [
+                "APASZ_VEHICLE_READOUT_UPDATE_INTERVAL_0_5",
+                "APASZ_VEHICLE_READOUT_UPDATE_INTERVAL_1",
+                "APASZ_VEHICLE_READOUT_UPDATE_INTERVAL_2",
+                "APASZ_VEHICLE_READOUT_UPDATE_INTERVAL_5",
+                "APASZ_VEHICLE_READOUT_UPDATE_INTERVAL_15"
+            ]
+        }
+    ],
+    "postRunScript": {
+        "fileName": ""
+    },
+    "preRunScript": {
+        "fileName": ""
+    },
+    "revision": 1,
+    "runScript": {
+        "fileName": ""
+    },
+    "severityAdd": "None",
+    "severityRemove": "None"
+}

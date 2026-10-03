@@ -1,0 +1,18 @@
+{
+    "authors": [
+        {
+            "name": "apasz",
+            "role": "CREATOR"
+        }
+    ],
+    "description": "Vehicle Readout redesigns vehicle floating displays with compact cargo cards and configurable live information: vehicle name, speed, load percentage, operating state, next stop, line identity, condition, passenger happiness, and cargo delivery quality. Includes visibility filters and configurable detail.",
+    "name": "Vehicle Readout",
+    "summary": "A configurable overhaul of floating vehicle readouts.",
+    "tags": [
+        "UI",
+        "Misc",
+        "Script Mod"
+    ],
+    "url": "",
+    "url_repo": "https://github.com/APasz/transportfever3-vehicle-readout"
+}

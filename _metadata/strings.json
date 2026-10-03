@@ -1,0 +1,93 @@
+{
+    "en": {
+        "": {
+            "NAME": "Vehicle Readout",
+            "SUMMARY": "A configurable overhaul of floating vehicle readouts.",
+            "DESCRIPTION": "Vehicle Readout redesigns vehicle floating displays with compact cargo cards and configurable live information: vehicle name, speed, load percentage, operating state, next stop, line identity, condition, passenger happiness, and cargo delivery quality. Includes visibility filters and configurable detail."
+        }
+    },
+    "de": {
+        "": {
+            "NAME": "Vehicle Readout",
+            "SUMMARY": "Eine konfigurierbare Überarbeitung der schwebenden Fahrzeuganzeigen.",
+            "DESCRIPTION": "Vehicle Readout gestaltet die schwebenden Fahrzeuganzeigen mit kompakten Frachtkarten und konfigurierbaren Live-Informationen neu: Fahrzeugname, Geschwindigkeit, Beladungsgrad, Betriebsstatus, nächster Halt, Linienzugehörigkeit, Zustand, Fahrgastzufriedenheit und Qualität der Frachtlieferung. Enthält Sichtbarkeitsfilter und konfigurierbare Details."
+        }
+    },
+    "es": {
+        "": {
+            "NAME": "Vehicle Readout",
+            "SUMMARY": "Una renovación configurable de los indicadores flotantes de vehículos.",
+            "DESCRIPTION": "Vehicle Readout rediseña los indicadores flotantes de vehículos con tarjetas de carga compactas e información en directo configurable: nombre, velocidad, porcentaje de carga, estado operativo, siguiente parada, identidad de la línea, estado del vehículo, satisfacción de los pasajeros y calidad de entrega de la carga. Incluye filtros de visibilidad y detalles configurables."
+        }
+    },
+    "fr": {
+        "": {
+            "NAME": "Vehicle Readout",
+            "SUMMARY": "Une refonte configurable des affichages flottants des véhicules.",
+            "DESCRIPTION": "Vehicle Readout remanie les affichages flottants des véhicules avec des fiches de fret compactes et des informations en direct configurables : nom, vitesse, pourcentage de chargement, état d’exploitation, prochain arrêt, identité de la ligne, état du véhicule, satisfaction des passagers et qualité de livraison du fret. Inclut des filtres de visibilité et un niveau de détail configurable."
+        }
+    },
+    "it": {
+        "": {
+            "NAME": "Vehicle Readout",
+            "SUMMARY": "Una revisione configurabile dei display fluttuanti dei veicoli.",
+            "DESCRIPTION": "Vehicle Readout ridisegna i display fluttuanti dei veicoli con schede merci compatte e informazioni in tempo reale configurabili: nome, velocità, percentuale di carico, stato operativo, fermata successiva, identità della linea, condizioni, soddisfazione dei passeggeri e qualità di consegna delle merci. Include filtri di visibilità e dettagli configurabili."
+        }
+    },
+    "ja": {
+        "": {
+            "NAME": "Vehicle Readout",
+            "SUMMARY": "車両のフローティング表示を設定可能な新デザインに刷新します。",
+            "DESCRIPTION": "Vehicle Readoutは、コンパクトな貨物カードと設定可能なリアルタイム情報によって車両のフローティング表示を刷新します。車両名、速度、積載率、運行状態、次の停留所、路線情報、車両状態、乗客満足度、貨物配送品質を表示できます。表示対象フィルターと詳細設定も備えています。"
+        }
+    },
+    "ko": {
+        "": {
+            "NAME": "Vehicle Readout",
+            "SUMMARY": "차량 부동 표시를 원하는 대로 설정할 수 있도록 새롭게 디자인합니다.",
+            "DESCRIPTION": "Vehicle Readout은 간결한 화물 카드와 설정 가능한 실시간 정보로 차량 부동 표시를 새롭게 디자인합니다. 차량 이름, 속도, 적재율, 운행 상태, 다음 정류장, 노선 정보, 차량 상태, 승객 만족도 및 화물 배송 품질을 표시할 수 있습니다. 표시 대상 필터와 세부 설정도 포함됩니다."
+        }
+    },
+    "nl": {
+        "": {
+            "NAME": "Vehicle Readout",
+            "SUMMARY": "Een configureerbare vernieuwing van zwevende voertuigweergaven.",
+            "DESCRIPTION": "Vehicle Readout vernieuwt de zwevende voertuigweergaven met compacte vrachtkaarten en configureerbare live-informatie: voertuignaam, snelheid, beladingspercentage, bedrijfsstatus, volgende halte, lijnidentiteit, conditie, passagierstevredenheid en kwaliteit van vrachtbezorging. Bevat zichtbaarheidsfilters en configureerbare details."
+        }
+    },
+    "pl": {
+        "": {
+            "NAME": "Vehicle Readout",
+            "SUMMARY": "Konfigurowalna modernizacja pływających paneli pojazdów.",
+            "DESCRIPTION": "Vehicle Readout przeprojektowuje pływające panele pojazdów, dodając zwarte karty ładunku i konfigurowalne informacje na żywo: nazwę, prędkość, procent zapełnienia, stan eksploatacyjny, następny przystanek, identyfikację linii, kondycję, zadowolenie pasażerów i jakość dostawy ładunku. Zawiera filtry widoczności i konfigurowalny poziom szczegółów."
+        }
+    },
+    "pt_BR": {
+        "": {
+            "NAME": "Vehicle Readout",
+            "SUMMARY": "Uma reformulação configurável dos indicadores flutuantes de veículos.",
+            "DESCRIPTION": "Vehicle Readout reformula os indicadores flutuantes de veículos com cartões de carga compactos e informações em tempo real configuráveis: nome, velocidade, porcentagem de carga, estado operacional, próxima parada, identificação da linha, condição, satisfação dos passageiros e qualidade da entrega da carga. Inclui filtros de visibilidade e detalhes configuráveis."
+        }
+    },
+    "ru": {
+        "": {
+            "NAME": "Vehicle Readout",
+            "SUMMARY": "Настраиваемая переработка всплывающих панелей транспортных средств.",
+            "DESCRIPTION": "Vehicle Readout обновляет всплывающие панели транспортных средств, добавляя компактные карточки груза и настраиваемые сведения в реальном времени: название, скорость, процент загрузки, рабочее состояние, следующую остановку, информацию о линии, техническое состояние, удовлетворённость пассажиров и качество доставки груза. Включает фильтры видимости и настройку детализации."
+        }
+    },
+    "zh_CN": {
+        "": {
+            "NAME": "Vehicle Readout",
+            "SUMMARY": "可配置的车辆悬浮信息全面改版。",
+            "DESCRIPTION": "Vehicle Readout 通过紧凑的货物卡片和可配置的实时信息重新设计车辆悬浮显示：车辆名称、速度、装载率、运行状态、下一站、线路信息、车辆状况、乘客满意度和货物配送质量。包括可见性筛选和可配置的详细程度。"
+        }
+    },
+    "zh_TW": {
+        "": {
+            "NAME": "Vehicle Readout",
+            "SUMMARY": "可設定的車輛浮動資訊全面改版。",
+            "DESCRIPTION": "Vehicle Readout 透過精簡的貨物卡片和可設定的即時資訊重新設計車輛浮動顯示：車輛名稱、速度、裝載率、運行狀態、下一站、路線資訊、車輛狀況、乘客滿意度和貨物配送品質。包括可見性篩選和可設定的詳細程度。"
+        }
+    }
+}

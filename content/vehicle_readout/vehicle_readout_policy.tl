@@ -1,0 +1,77 @@
+local vehicle_readout_policy : VehicleReadoutPolicy = {}
+
+vehicle_readout_policy.shouldShowForVehicle = function(
+	visibility : VehicleReadoutPolicy.VehicleVisibility,
+	isAdditionallyVisible : boolean,
+	isOnSelectedLine : boolean,
+	isSelectedVehicle : boolean
+) : boolean
+	if visibility ~= "All"
+		and visibility ~= "SelectedLine"
+		and visibility ~= "SelectedVehicle"
+		and visibility ~= "None"
+	then
+		error("Unhandled Vehicle Readout visibility: " .. tostring(visibility))
+	end
+
+	if isAdditionallyVisible or visibility == "All" then
+		return true
+	elseif visibility == "SelectedLine" then
+		return isOnSelectedLine
+	elseif visibility == "SelectedVehicle" then
+		return isSelectedVehicle
+	end
+	return false
+end
+
+vehicle_readout_policy.getHiddenStatePresentation = function(
+	stateKind : VehicleReadoutPolicy.OperationalStateKind
+) : VehicleReadoutPolicy.HiddenStatePresentation
+	if stateKind == "AwaitingAssignment" or stateKind == "Unassigned" or stateKind == "NoPath" then
+		return "Label"
+	elseif stateKind == "GoingToDepot" or stateKind == "UserStopped" then
+		return "Icon"
+	elseif stateKind == "EnRoute" or stateKind == "AtTerminal" or stateKind == "InDepot" then
+		return "Hidden"
+	end
+	error("Unhandled Vehicle Readout operational state: " .. tostring(stateKind))
+end
+
+vehicle_readout_policy.resolveStateDisplay = function(
+	showOperatingState : boolean,
+	stateIsNotable : boolean,
+	hiddenPresentation : VehicleReadoutPolicy.HiddenStatePresentation,
+	hasNamedDepotDestination : boolean
+) : VehicleReadoutPolicy.StateDisplay
+	if hiddenPresentation ~= "Hidden"
+		and hiddenPresentation ~= "Icon"
+		and hiddenPresentation ~= "Label"
+	then
+		error("Unhandled Vehicle Readout hidden-state presentation: " .. tostring(hiddenPresentation))
+	end
+
+	if hiddenPresentation == "Label" then
+		return "Label"
+	elseif hasNamedDepotDestination then
+		return "NamedDepot"
+	elseif showOperatingState and stateIsNotable then
+		return "Label"
+	elseif hiddenPresentation == "Icon" then
+		return "Icon"
+	end
+	return "Hidden"
+end
+
+vehicle_readout_policy.shouldShowNextStop = function(
+	showDestination : boolean,
+	destinationKind : VehicleReadoutPolicy.DestinationKind
+) : boolean
+	if destinationKind == "NextStop" then
+		return showDestination
+	elseif destinationKind == "None" or destinationKind == "Depot" then
+		return false
+	end
+	error("Unhandled Vehicle Readout destination kind: " .. tostring(destinationKind))
+end
+
+return vehicle_readout_policy
