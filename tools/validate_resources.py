@@ -291,7 +291,7 @@ def main() -> None:
     parameters = parse_parameters(manifest.get("params"))
     parameter_keys = [parameter["key"] for parameter in parameters]
     require_unique(parameter_keys, "parameter keys")
-    parameter_prefix = f"{mod_id.removesuffix('_1')}_"
+    parameter_prefix = f"{mod_id}_"
     invalid_parameter_keys = sorted(
         key for key in parameter_keys if not key.startswith(parameter_prefix)
     )
@@ -316,8 +316,7 @@ def main() -> None:
     if len(source_mod_ids) != 1:
         raise ValueError(f"Expected one script MOD_ID, found: {source_mod_ids!r}")
     resource_namespace = source_mod_ids[0]
-    valid_resource_namespaces = {mod_id, f"{mod_id}_1"}
-    if resource_namespace not in valid_resource_namespaces:
+    if resource_namespace != mod_id:
         raise ValueError(
             f"Script resource namespace does not match manifest modId: {resource_namespace}"
         )

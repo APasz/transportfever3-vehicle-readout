@@ -9,12 +9,12 @@ local lang_util = ug_require "::/scripts/lang_util.tl" as LangUtil
 local mathutil = ug_require "::/scripts/mathutil.lua" as MathUtil
 local notification_react_util = ug_require "::/game_mechanics/notifications/types/notification_react_util.tl" as NotificationReactUtil
 local react = ug_require "::/gui/main/react.lua" as React
-local vehicle_readout_policy = ug_require "apasz_vehicle_readout_1::/vehicle_readout/vehicle_readout_policy.tl" as VehicleReadoutPolicy
+local vehicle_readout_policy = ug_require "apasz_vehicle_readout::/vehicle_readout/vehicle_readout_policy.tl" as VehicleReadoutPolicy
 local styleutil = ug_require "::/gui/main/styleutil.tl" as StyleUtil
 local vehicle_react_util = ug_require "::/gui/line_vehicle_mgmt/vehicle_react_util.tl" as VehicleReactUtil
 local vehicle_util = ug_require "::/gui/line_vehicle_mgmt/vehicle_util.tl" as VehicleUtil
 
-local MOD_ID = "apasz_vehicle_readout_1"
+local MOD_ID = "apasz_vehicle_readout"
 local VISIBILITY_PARAM_KEY = "apasz_vehicle_readout_visibility"
 local ADDITIONAL_VEHICLE_VISIBILITY_PARAM_KEY = "apasz_vehicle_readout_additional_vehicle_visibility"
 local SHOW_VEHICLE_NAME_PARAM_KEY = "apasz_vehicle_readout_show_vehicle_name"

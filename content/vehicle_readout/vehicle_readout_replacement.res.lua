@@ -2,7 +2,7 @@ function data()
 	return {
 		type = "react-replacement-config",
 		data = {
-			filePath = "apasz_vehicle_readout_1::/vehicle_readout/vehicle_readout.script",
+			filePath = "apasz_vehicle_readout::/vehicle_readout/vehicle_readout.script",
 			doReplaceFn = "doReplace",
 			order = 0,
 		},
