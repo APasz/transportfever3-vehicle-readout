@@ -1,4 +1,4 @@
-local GAME_BAR_ORDER = 10
+local GAME_BAR_ORDER = 100
 
 function data()
 	return {

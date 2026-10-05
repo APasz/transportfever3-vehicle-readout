@@ -16,6 +16,7 @@ local vehicle_readout_policy = ug_require "apasz_vehicle_readout::/vehicle_reado
 local styleutil = ug_require "::/gui/main/styleutil.tl" as StyleUtil
 local vehicle_react_util = ug_require "::/gui/line_vehicle_mgmt/vehicle_react_util.tl" as VehicleReactUtil
 local vehicle_util = ug_require "::/gui/line_vehicle_mgmt/vehicle_util.tl" as VehicleUtil
+local vehicle_window = ug_require "::/gui/entity_window/vehicle/vehicle.tl" as Recipe<IEntityWindowParam>
 
 local MOD_ID = "apasz_vehicle_readout"
 local logger = logging.new("Vehicle Readout", debugLoggingEnabled)
@@ -182,10 +183,6 @@ local record IndicatorContent
 	tooltip : string
 end
 
-local record SelectEntityEvent
-	entity : Engine.Entity
-end
-
 local type NotificationCacheAccess = function(Engine.Entity) : {Notification}
 local type EmptyCargoItemFactory = function() : TreeNodeId
 
@@ -346,6 +343,7 @@ local uiVisibilitySubscriptionCounts : {Engine.Entity : integer} = {}
 local uiVisibilityByEntity : {Engine.Entity : boolean} = {}
 local uiVisibilityPollClock = api.type.Clock.new()
 local nextUiVisibilityPollTime = 0
+local gameBarDetailWindowVehicleEntity : Engine.Entity = INVALID_ENTITY
 
 local function ensureSettingsLoaded()
 	if settingsLoaded then
@@ -360,6 +358,12 @@ local function getTransportVehicle(entity : Engine.Entity) : Engine.Component.Tr
 		return nil
 	end
 	return api.engine.getComponent(entity, api.type.ComponentType.TRANSPORT_VEHICLE)
+end
+
+local function rememberGameBarDetailWindowVehicle(entity : Engine.Entity | nil)
+	if entity ~= nil and getTransportVehicle(entity) ~= nil then
+		gameBarDetailWindowVehicleEntity = entity
+	end
 end
 
 local function isExistingLine(entity : Engine.Entity | nil) : boolean
@@ -1350,56 +1354,46 @@ local VehicleReadoutLineHudIconMaster = react.RegisterRecipe("ApaszVehicleReadou
 	)
 end)
 
-local function resolveGameBarTargetEntity(activeSelectionEntity : Engine.Entity) : Engine.Entity
+local VehicleReadoutVehicleWindow = react.RegisterRecipe("ApaszVehicleReadoutVehicleWindow", function(
+	params : IEntityWindowParam
+) : TreeNodeId
+	-- Game-bar plugins do not receive the main-view selection events.
+	rememberGameBarDetailWindowVehicle(params.keyEntity)
+	return builtin.BoxLayout{
+		children = {
+			react.CallOriginalRecipe(vehicle_window, params),
+		},
+	}
+end)
+
+local function resolveGameBarTargetEntity() : Engine.Entity
 	local followedEntity = api.gui.camera.getFollowEntity()[1]
 	if getTransportVehicle(followedEntity) ~= nil then
 		return followedEntity
 	end
 
-	if getTransportVehicle(activeSelectionEntity) ~= nil
-		and isVehicleDetailWindowVisible(activeSelectionEntity)
+	if getTransportVehicle(gameBarDetailWindowVehicleEntity) ~= nil
+		and isVehicleDetailWindowVisible(gameBarDetailWindowVehicleEntity)
 	then
-		return activeSelectionEntity
+		return gameBarDetailWindowVehicleEntity
 	end
 	return INVALID_ENTITY
 end
 
 local function useGameBarVehicleEntity() : Engine.Entity
-	local activeSelectionEntity : ReactRefT<Engine.Entity> = react.useRef(INVALID_ENTITY)
 	local state : ReactStateT<Engine.Entity> = react.useState(INVALID_ENTITY)
 	local function enqueueTargetUpdate()
 		react.enqueueJoin(function()
 			if state:hasExpired() then
 				return
 			end
-			local targetEntity = resolveGameBarTargetEntity(activeSelectionEntity:get())
+			local targetEntity = resolveGameBarTargetEntity()
 			if state:old() ~= targetEntity then
 				state:set(targetEntity)
 			end
 		end, "ApaszVehicleReadout:updateGameBarTargetEntity")
 	end
 
-	react.onEvent("selectEntity", function(_ : string, rawEvent : any)
-		if type(rawEvent) ~= "table" then
-			logger.fail("selectEntity event must be a table")
-			return
-		end
-		local event = rawEvent as SelectEntityEvent
-		if type(event.entity) ~= "number" then
-			logger.fail("selectEntity event is missing its entity")
-			return
-		end
-		activeSelectionEntity:set(event.entity)
-		enqueueTargetUpdate()
-	end)
-	local function clearActiveSelection()
-		activeSelectionEntity:set(INVALID_ENTITY)
-		enqueueTargetUpdate()
-	end
-	react.onEvent("selectNothing", clearActiveSelection)
-	react.onEvent("selectMarker", clearActiveSelection)
-	react.onEvent("selectViewKey", clearActiveSelection)
-	react.onEvent("closeAllWindows", clearActiveSelection)
 	react.onMount(enqueueTargetUpdate)
 	react.onStepTimer(enqueueTargetUpdate, UI_VISIBILITY_UPDATE_INTERVAL_SECONDS)
 	return state:old()
@@ -1747,6 +1741,7 @@ local function doReplace(replacementApi : ReactReplacementApi)
 	ensureSettingsLoaded()
 	replacementApi.ReplaceRecipe(hud_icon_toolbox.HudIconMasterGame, VehicleReadoutHudIconMasterGame)
 	replacementApi.ReplaceRecipe(entity_window_hud.LineHudIconMaster, VehicleReadoutLineHudIconMaster)
+	replacementApi.ReplaceRecipe(vehicle_window, VehicleReadoutVehicleWindow)
 end
 
 return {
