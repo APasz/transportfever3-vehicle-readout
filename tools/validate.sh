@@ -18,6 +18,7 @@ unzip -p "${compiler_archive}" base/tl.lua > "${temporary_dir}/tl.lua"
 lua "${script_dir}/validate.lua" "${temporary_dir}/tl.lua" "${game_root}" "${mod_root}"
 luac -p \
 	"${mod_root}/content/vehicle_readout/vehicle_readout.css.lua" \
+	"${mod_root}/content/vehicle_readout/vehicle_readout_game_bar.res.lua" \
 	"${mod_root}/content/vehicle_readout/vehicle_readout_replacement.res.lua" \
 	"${mod_root}/tlconfig.lua"
 python3 "${script_dir}/validate_resources.py" "${mod_root}" "${game_root}"

@@ -12,6 +12,21 @@ global record VehicleReadoutPolicy
 		"Depot"
 	end
 
+	enum SpeedDisplay
+		"Off"
+		"Below"
+		"BelowGameBar"
+		"Above"
+		"AboveGameBar"
+		"GameBarOnly"
+	end
+
+	enum FloatingSpeedPlacement
+		"Hidden"
+		"Below"
+		"Above"
+	end
+
 	enum OperationalStateKind
 		"EnRoute"
 		"AtTerminal"
@@ -50,4 +65,6 @@ global record VehicleReadoutPolicy
 		boolean
 	) : StateDisplay
 	shouldShowNextStop : function(boolean, DestinationKind) : boolean
+	getFloatingSpeedPlacement : function(SpeedDisplay) : FloatingSpeedPlacement
+	shouldShowGameBarSpeed : function(SpeedDisplay) : boolean
 end

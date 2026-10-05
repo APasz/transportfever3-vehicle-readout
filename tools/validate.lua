@@ -107,10 +107,14 @@ local function assertEqual(actual, expected, context)
 	assert(actual == expected, context .. ": expected " .. tostring(expected) .. ", got " .. tostring(actual))
 end
 
-local function assertErrors(action, context)
+local function assertErrors(action, expectedMessage, context)
 	checkCount = checkCount + 1
-	local succeeded = pcall(action)
+	local succeeded, failure = pcall(action)
 	assert(not succeeded, context .. ": expected an error")
+	assert(
+		string.find(tostring(failure), expectedMessage, 1, true) ~= nil,
+		context .. ": unexpected error: " .. tostring(failure)
+	)
 end
 
 local visibilities = { "All", "SelectedLine", "SelectedVehicle", "None" }
@@ -191,28 +195,55 @@ for _, showDestination in ipairs({ false, true }) do
 	end
 end
 
+local speedDisplayExpectations = {
+	Off = { "Hidden", false },
+	Below = { "Below", false },
+	BelowGameBar = { "Below", true },
+	Above = { "Above", false },
+	AboveGameBar = { "Above", true },
+	GameBarOnly = { "Hidden", true },
+}
+for speedDisplay, expected in pairs(speedDisplayExpectations) do
+	assertEqual(
+		policy.getFloatingSpeedPlacement(speedDisplay),
+		expected[1],
+		"floating speed placement for " .. speedDisplay
+	)
+	assertEqual(
+		policy.shouldShowGameBarSpeed(speedDisplay),
+		expected[2],
+		"game-bar speed visibility for " .. speedDisplay
+	)
+end
+
 assertErrors(function()
 	policy.shouldShowForVehicle("Invalid", false, false, false)
-end, "invalid visibility")
+end, "[Vehicle Readout] ERROR: Unhandled visibility: Invalid", "invalid visibility")
 assertErrors(function()
 	policy.shouldShowForVehicle("Invalid", true, true, true)
-end, "invalid visibility with visibility override")
+end, "[Vehicle Readout] ERROR: Unhandled visibility: Invalid", "invalid visibility with visibility override")
 assertErrors(function()
 	policy.getHiddenStatePresentation("Invalid")
-end, "invalid operational state")
+end, "[Vehicle Readout] ERROR: Unhandled operational state: Invalid", "invalid operational state")
 for _, showOperatingState in ipairs({ false, true }) do
 	for _, stateIsNotable in ipairs({ false, true }) do
 		for _, hasNamedDepot in ipairs({ false, true }) do
 			assertErrors(function()
 				policy.resolveStateDisplay(showOperatingState, stateIsNotable, "Invalid", hasNamedDepot)
-			end, "invalid hidden-state presentation")
+			end, "[Vehicle Readout] ERROR: Unhandled hidden-state presentation: Invalid", "invalid hidden-state presentation")
 		end
 	end
 end
 for _, showDestination in ipairs({ false, true }) do
 	assertErrors(function()
 		policy.shouldShowNextStop(showDestination, "Invalid")
-	end, "invalid destination kind")
+	end, "[Vehicle Readout] ERROR: Unhandled destination kind: Invalid", "invalid destination kind")
 end
+assertErrors(function()
+	policy.getFloatingSpeedPlacement("Invalid")
+end, "[Vehicle Readout] ERROR: Unhandled speed display: Invalid", "invalid floating speed display")
+assertErrors(function()
+	policy.shouldShowGameBarSpeed("Invalid")
+end, "[Vehicle Readout] ERROR: Unhandled speed display: Invalid", "invalid game-bar speed display")
 
 print(string.format("Policy matrix: %d checks passed", checkCount))

@@ -78,4 +78,31 @@ vehicle_readout_policy.shouldShowNextStop = function(
 	return logger.fail("Unhandled destination kind: " .. tostring(destinationKind))
 end
 
+vehicle_readout_policy.getFloatingSpeedPlacement = function(
+	speedDisplay : VehicleReadoutPolicy.SpeedDisplay
+) : VehicleReadoutPolicy.FloatingSpeedPlacement
+	if speedDisplay == "Off" or speedDisplay == "GameBarOnly" then
+		return "Hidden"
+	elseif speedDisplay == "Below" or speedDisplay == "BelowGameBar" then
+		return "Below"
+	elseif speedDisplay == "Above" or speedDisplay == "AboveGameBar" then
+		return "Above"
+	end
+	return logger.fail("Unhandled speed display: " .. tostring(speedDisplay))
+end
+
+vehicle_readout_policy.shouldShowGameBarSpeed = function(
+	speedDisplay : VehicleReadoutPolicy.SpeedDisplay
+) : boolean
+	if speedDisplay == "BelowGameBar"
+		or speedDisplay == "AboveGameBar"
+		or speedDisplay == "GameBarOnly"
+	then
+		return true
+	elseif speedDisplay == "Off" or speedDisplay == "Below" or speedDisplay == "Above" then
+		return false
+	end
+	return logger.fail("Unhandled speed display: " .. tostring(speedDisplay))
+end
+
 return vehicle_readout_policy

@@ -3,6 +3,7 @@ local cargo_react_util = ug_require "::/gui/main/cargo_react_util.tl" as CargoRe
 local cargo_util = ug_require "::/gui/main/cargo_util.tl" as CargoUtil
 local engine_react_util = ug_require "::/gui/main/engine_react_util.tl" as EngineReactUtil
 local entity_window_hud = ug_require "::/gui/entity_window/entity_window_hud.tl" as EntityWindowHud
+local game_bar_widgets = ug_require "::/gui/game_bar/game_bar_widgets.tl" as GameBarWidgets
 local gui_react_util = ug_require "::/gui/main/gui_react_util.tl" as GuiReactUtil
 local hud_icon_toolbox = ug_require "::/gui/main/hud_icon_toolbox.tl" as HudIconToolbox
 local lang_util = ug_require "::/scripts/lang_util.tl" as LangUtil
@@ -21,7 +22,10 @@ local logger = logging.new("Vehicle Readout", debugLoggingEnabled)
 local VISIBILITY_PARAM_KEY = "apasz_vehicle_readout_visibility"
 local ADDITIONAL_VEHICLE_VISIBILITY_PARAM_KEY = "apasz_vehicle_readout_additional_vehicle_visibility"
 local SHOW_VEHICLE_NAME_PARAM_KEY = "apasz_vehicle_readout_show_vehicle_name"
-local SPEED_PLACEMENT_PARAM_KEY = "apasz_vehicle_readout_speed_style"
+local SPEED_DISPLAY_PARAM_KEY = "apasz_vehicle_readout_speed_display"
+-- Keep the published key so existing saves retain their three-state speed placement.
+local LEGACY_SPEED_PLACEMENT_PARAM_KEY = "apasz_vehicle_readout_speed_style"
+local GAME_BAR_STAT_PARAM_KEY = "apasz_vehicle_readout_game_bar_stat"
 local UPDATE_INTERVAL_PARAM_KEY = "apasz_vehicle_readout_update_interval"
 local SHOW_LOAD_PERCENTAGE_PARAM_KEY = "apasz_vehicle_readout_show_load_percentage"
 local SHOW_DESTINATION_PARAM_KEY = "apasz_vehicle_readout_show_next_stop"
@@ -61,12 +65,14 @@ local LOADING_SPEED_PENALTY_THRESHOLD = 0.75
 local LOADING_ANIMATION_BASE_SPEED = 4
 local LOADING_ANIMATION_FRAME_COUNT = 12
 local UI_VISIBILITY_UPDATE_INTERVAL_SECONDS = 0.5
+local GAME_BAR_SPEED_UPDATE_INTERVAL_SECONDS = 0.25
 local MICROSECONDS_PER_SECOND = 1000000
 local UI_VISIBILITY_UPDATE_INTERVAL_MICROSECONDS = math.floor(
 	UI_VISIBILITY_UPDATE_INTERVAL_SECONDS * MICROSECONDS_PER_SECOND
 ) as integer
 local MAX_NAMED_INDICATOR_WIDTH_UNITS = 20
 local ELLIPSIS = "…"
+local UNAVAILABLE_LABEL = "—"
 
 local type VehicleVisibility = VehicleReadoutPolicy.VehicleVisibility
 
@@ -77,10 +83,14 @@ local enum AdditionalVehicleVisibility
 	"Both"
 end
 
-local enum SpeedPlacement
+local enum GameBarStat
 	"Off"
-	"Below"
-	"Above"
+	"Destination"
+	"Line"
+	"State"
+	"Load"
+	"Condition"
+	"VehicleName"
 end
 
 local type DestinationKind = VehicleReadoutPolicy.DestinationKind
@@ -91,7 +101,8 @@ local record Settings
 	visibility : VehicleVisibility
 	additionalVehicleVisibility : AdditionalVehicleVisibility
 	showVehicleName : boolean
-	speedPlacement : SpeedPlacement
+	speedDisplay : VehicleReadoutPolicy.SpeedDisplay
+	gameBarStat : GameBarStat
 	updateIntervalSeconds : number
 	showLoadPercentage : boolean
 	showDestination : boolean
@@ -130,6 +141,51 @@ local record VehicleSnapshot
 	conditionIcon : string
 end
 
+local record GameBarSpeedSnapshot
+	entity : Engine.Entity
+	available : boolean
+	speed : number
+end
+
+local record GameBarCargoSummary
+	cargoType : CargoTypeId
+	name : string
+	count : integer
+	capacity : integer
+	averageQuality : number | nil
+	badCount : integer
+end
+
+local record GameBarSnapshot
+	entity : Engine.Entity
+	available : boolean
+	vehicleName : string
+	vehicleIcon : string
+	speed : number
+	topSpeed : number
+	lineName : string
+	destinationKind : DestinationKind
+	destinationName : string
+	stateLabel : string
+	stateIcon : string
+	loadCount : integer
+	loadCapacity : integer
+	condition : number
+	conditionLabel : string
+	conditionIcon : string
+	cargoSummaries : {GameBarCargoSummary}
+end
+
+local record IndicatorContent
+	iconPath : string
+	label : string
+	tooltip : string
+end
+
+local record SelectEntityEvent
+	entity : Engine.Entity
+end
+
 local type NotificationCacheAccess = function(Engine.Entity) : {Notification}
 local type EmptyCargoItemFactory = function() : TreeNodeId
 
@@ -153,10 +209,29 @@ local ADDITIONAL_VEHICLE_VISIBILITIES : {integer : AdditionalVehicleVisibility} 
 	[4] = "Both",
 }
 
-local SPEED_PLACEMENTS : {integer : SpeedPlacement} = {
+local SPEED_DISPLAYS : {integer : VehicleReadoutPolicy.SpeedDisplay} = {
+	[1] = "Off",
+	[2] = "Below",
+	[3] = "BelowGameBar",
+	[4] = "Above",
+	[5] = "AboveGameBar",
+	[6] = "GameBarOnly",
+}
+
+local LEGACY_SPEED_PLACEMENTS : {integer : VehicleReadoutPolicy.SpeedDisplay} = {
 	[1] = "Off",
 	[2] = "Below",
 	[3] = "Above",
+}
+
+local GAME_BAR_STATS : {integer : GameBarStat} = {
+	[1] = "Off",
+	[2] = "Destination",
+	[3] = "Line",
+	[4] = "State",
+	[5] = "Load",
+	[6] = "Condition",
+	[7] = "VehicleName",
 }
 
 local UPDATE_INTERVALS : {integer : number} = {
@@ -172,16 +247,26 @@ local BOOLEAN_VALUES : {integer : boolean} = {
 	[2] = true,
 }
 
-local function readMappedParam<T>(
-	params : ModParams,
+local DEFAULT_PARAM_INDICES : {string : integer} = {
+	[VISIBILITY_PARAM_KEY] = 2,
+	[ADDITIONAL_VEHICLE_VISIBILITY_PARAM_KEY] = 4,
+	[SHOW_VEHICLE_NAME_PARAM_KEY] = 1,
+	[SPEED_DISPLAY_PARAM_KEY] = 4,
+	[GAME_BAR_STAT_PARAM_KEY] = 1,
+	[UPDATE_INTERVAL_PARAM_KEY] = 4,
+	[SHOW_LOAD_PERCENTAGE_PARAM_KEY] = 2,
+	[SHOW_DESTINATION_PARAM_KEY] = 1,
+	[SHOW_STATE_PARAM_KEY] = 1,
+	[SHOW_LINE_PARAM_KEY] = 1,
+	[SHOW_CONDITION_PARAM_KEY] = 1,
+	[SHOW_QUALITY_PARAM_KEY] = 1,
+}
+
+local function mapParamValue<T>(
+	rawValue : number,
 	key : string,
-	values : {integer : T},
-	defaultValue : T
+	values : {integer : T}
 ) : T
-	local rawValue = params[key]
-	if rawValue == nil then
-		return defaultValue
-	end
 	if type(rawValue) ~= "number" then
 		return logger.fail("Parameter '" .. key .. "' must be a number")
 	end
@@ -198,79 +283,77 @@ local function readMappedParam<T>(
 	return value
 end
 
-local DEFAULT_SETTINGS : Settings = {
-	visibility = "All",
-	additionalVehicleVisibility = "Neither",
-	showVehicleName = false,
-	speedPlacement = "Below",
-	updateIntervalSeconds = 0.5,
-	showLoadPercentage = true,
-	showDestination = false,
-	showState = false,
-	showLine = false,
-	showCondition = false,
-	showQuality = false,
-}
+local function readMappedParam<T>(
+	params : ModParams,
+	key : string,
+	values : {integer : T}
+) : T
+	local rawValue = params[key]
+	if rawValue == nil then
+		rawValue = DEFAULT_PARAM_INDICES[key]
+	end
+	if rawValue == nil then
+		return logger.fail("No default configured for parameter '" .. key .. "'")
+	end
+	return mapParamValue(rawValue, key, values)
+end
 
-local function loadSettings() : Settings
-	local allModParams = api.engine.config.getModParams()
-	local params = (allModParams[MOD_ID] or {}) as ModParams
+local function readSpeedDisplay(params : ModParams) : VehicleReadoutPolicy.SpeedDisplay
+	if params[SPEED_DISPLAY_PARAM_KEY] ~= nil then
+		return readMappedParam(params, SPEED_DISPLAY_PARAM_KEY, SPEED_DISPLAYS)
+	end
+	local legacySpeedPlacement = params[LEGACY_SPEED_PLACEMENT_PARAM_KEY]
+	if legacySpeedPlacement ~= nil then
+		return mapParamValue(
+			legacySpeedPlacement,
+			LEGACY_SPEED_PLACEMENT_PARAM_KEY,
+			LEGACY_SPEED_PLACEMENTS
+		)
+	end
+	return readMappedParam(params, SPEED_DISPLAY_PARAM_KEY, SPEED_DISPLAYS)
+end
+
+local function parseSettings(params : ModParams) : Settings
 	local result : Settings = {
-		visibility = readMappedParam(params, VISIBILITY_PARAM_KEY, VISIBILITIES, DEFAULT_SETTINGS.visibility),
+		visibility = readMappedParam(params, VISIBILITY_PARAM_KEY, VISIBILITIES),
 		additionalVehicleVisibility = readMappedParam(
 			params,
 			ADDITIONAL_VEHICLE_VISIBILITY_PARAM_KEY,
-			ADDITIONAL_VEHICLE_VISIBILITIES,
-			DEFAULT_SETTINGS.additionalVehicleVisibility
+			ADDITIONAL_VEHICLE_VISIBILITIES
 		),
-		showVehicleName = readMappedParam(
-			params,
-			SHOW_VEHICLE_NAME_PARAM_KEY,
-			BOOLEAN_VALUES,
-			DEFAULT_SETTINGS.showVehicleName
-		),
-		speedPlacement = readMappedParam(
-			params,
-			SPEED_PLACEMENT_PARAM_KEY,
-			SPEED_PLACEMENTS,
-			DEFAULT_SETTINGS.speedPlacement
-		),
-		updateIntervalSeconds = readMappedParam(
-			params,
-			UPDATE_INTERVAL_PARAM_KEY,
-			UPDATE_INTERVALS,
-			DEFAULT_SETTINGS.updateIntervalSeconds
-		),
-		showLoadPercentage = readMappedParam(
-			params,
-			SHOW_LOAD_PERCENTAGE_PARAM_KEY,
-			BOOLEAN_VALUES,
-			DEFAULT_SETTINGS.showLoadPercentage
-		),
-		showDestination = readMappedParam(
-			params,
-			SHOW_DESTINATION_PARAM_KEY,
-			BOOLEAN_VALUES,
-			DEFAULT_SETTINGS.showDestination
-		),
-		showState = readMappedParam(params, SHOW_STATE_PARAM_KEY, BOOLEAN_VALUES, DEFAULT_SETTINGS.showState),
-		showLine = readMappedParam(params, SHOW_LINE_PARAM_KEY, BOOLEAN_VALUES, DEFAULT_SETTINGS.showLine),
-		showCondition = readMappedParam(
-			params,
-			SHOW_CONDITION_PARAM_KEY,
-			BOOLEAN_VALUES,
-			DEFAULT_SETTINGS.showCondition
-		),
-		showQuality = readMappedParam(params, SHOW_QUALITY_PARAM_KEY, BOOLEAN_VALUES, DEFAULT_SETTINGS.showQuality),
+		showVehicleName = readMappedParam(params, SHOW_VEHICLE_NAME_PARAM_KEY, BOOLEAN_VALUES),
+		speedDisplay = readSpeedDisplay(params),
+		gameBarStat = readMappedParam(params, GAME_BAR_STAT_PARAM_KEY, GAME_BAR_STATS),
+		updateIntervalSeconds = readMappedParam(params, UPDATE_INTERVAL_PARAM_KEY, UPDATE_INTERVALS),
+		showLoadPercentage = readMappedParam(params, SHOW_LOAD_PERCENTAGE_PARAM_KEY, BOOLEAN_VALUES),
+		showDestination = readMappedParam(params, SHOW_DESTINATION_PARAM_KEY, BOOLEAN_VALUES),
+		showState = readMappedParam(params, SHOW_STATE_PARAM_KEY, BOOLEAN_VALUES),
+		showLine = readMappedParam(params, SHOW_LINE_PARAM_KEY, BOOLEAN_VALUES),
+		showCondition = readMappedParam(params, SHOW_CONDITION_PARAM_KEY, BOOLEAN_VALUES),
+		showQuality = readMappedParam(params, SHOW_QUALITY_PARAM_KEY, BOOLEAN_VALUES),
 	}
 	return result
 end
 
-local settings : Settings = DEFAULT_SETTINGS
+local function loadSettings() : Settings
+	local allModParams = api.engine.config.getModParams()
+	return parseSettings((allModParams[MOD_ID] or {}) as ModParams)
+end
+
+local settings : Settings = parseSettings({})
+local settingsLoaded = false
 local uiVisibilitySubscriptionCounts : {Engine.Entity : integer} = {}
 local uiVisibilityByEntity : {Engine.Entity : boolean} = {}
 local uiVisibilityPollClock = api.type.Clock.new()
 local nextUiVisibilityPollTime = 0
+
+local function ensureSettingsLoaded()
+	if settingsLoaded then
+		return
+	end
+	settings = loadSettings()
+	settingsLoaded = true
+end
 
 local function getTransportVehicle(entity : Engine.Entity) : Engine.Component.TransportVehicle | nil
 	if entity < 0 or not api.engine.entityExists(entity) then
@@ -328,6 +411,13 @@ local function includesDetailWindowVehicle(visibility : AdditionalVehicleVisibil
 	return visibility == "DetailWindow" or visibility == "Both"
 end
 
+local function isVehicleDetailWindowVisible(entity : Engine.Entity) : boolean
+	if entity < 0 then
+		return false
+	end
+	return api.gui.byId.isVisibleRecursive(ENTITY_WINDOW_ID_PREFIX .. tostring(entity))
+end
+
 local function registerUiVisibilitySubscription(entity : Engine.Entity)
 	uiVisibilitySubscriptionCounts[entity] = (uiVisibilitySubscriptionCounts[entity] or 0) + 1
 end
@@ -356,8 +446,7 @@ local function updateAdditionalVehicleVisibility()
 	for entity, __ in pairs(uiVisibilitySubscriptionCounts) do
 		local shouldShow = followedEntity == entity
 		if not shouldShow and includeDetailWindow then
-			local windowId = ENTITY_WINDOW_ID_PREFIX .. tostring(entity)
-			shouldShow = api.gui.byId.isVisibleRecursive(windowId)
+			shouldShow = isVehicleDetailWindowVisible(entity)
 		end
 		uiVisibilityByEntity[entity] = shouldShow
 	end
@@ -646,10 +735,26 @@ local function makeIndicator(
 	}
 end
 
-local function formatCargoCount(cargoInfo : CargoUtil.CargoTypeInfo) : string
+local function formatCargoCountValues(count : integer, capacity : integer) : string
 	return lang_util.format(_("{count}/{capacity}"), {
-		count = lang_util.formatInt(cargoInfo.count),
-		capacity = lang_util.formatInt(cargoInfo.capacity),
+		count = lang_util.formatInt(count),
+		capacity = lang_util.formatInt(capacity),
+	})
+end
+
+local function formatCargoCount(cargoInfo : CargoUtil.CargoTypeInfo) : string
+	return formatCargoCountValues(cargoInfo.count, cargoInfo.capacity)
+end
+
+local function getLoadFraction(count : integer, capacity : integer) : number
+	return capacity > 0 and count / capacity or 0.0
+end
+
+local function formatLoadTooltip(count : integer, capacity : integer) : string
+	return lang_util.format(_("APASZ_VEHICLE_READOUT_LOAD_TOOLTIP"), {
+		count = lang_util.formatInt(count),
+		capacity = lang_util.formatInt(capacity),
+		percentage = api.util.toStringPercentPrecision(getLoadFraction(count, capacity), 1),
 	})
 end
 
@@ -736,19 +841,14 @@ local function makeCargoBadge(
 	cargoInfo : CargoUtil.CargoTypeInfo,
 	shippingState : GuiReactUtil.ShippingState
 ) : TreeNodeId
-	local fraction = cargoInfo.capacity > 0 and cargoInfo.count / cargoInfo.capacity or 0.0
+	local fraction = getLoadFraction(cargoInfo.count, cargoInfo.capacity)
 	local loadPercentage = api.util.toStringPercentPrecision(fraction, 0)
-	local loadTooltipPercentage = api.util.toStringPercentPrecision(fraction, 1)
 	local cargoLabel = formatCargoCount(cargoInfo)
 	if settings.showLoadPercentage then
 		cargoLabel = cargoLabel .. " (" .. loadPercentage .. ")"
 	end
 
-	local loadTooltip = lang_util.format(_("APASZ_VEHICLE_READOUT_LOAD_TOOLTIP"), {
-		count = lang_util.formatInt(cargoInfo.count),
-		capacity = lang_util.formatInt(cargoInfo.capacity),
-		percentage = loadTooltipPercentage,
-	})
+	local loadTooltip = formatLoadTooltip(cargoInfo.count, cargoInfo.capacity)
 	local qualityFontColor = getQualityFontColor(cargoInfo.count, cargoInfo.spoiledCount)
 	local cargoBadge = cargo_react_util.makeCargoIconLabelIndicator{
 		cargoType = cargoInfo.cargoType,
@@ -871,7 +971,7 @@ local function sampleVehicle(
 		result.vehicleColor = getVehicleColor(vehicle)
 	end
 
-	local showSpeed = settings.speedPlacement ~= "Off"
+	local showSpeed = vehicle_readout_policy.getFloatingSpeedPlacement(settings.speedDisplay) ~= "Hidden"
 	local needsSpeed = showSpeed or vehicle.userStopped
 	local currentSpeed = needsSpeed and api.engine.util.vehicle.getSpeed(entity) or 0.0
 	if showSpeed then
@@ -990,18 +1090,67 @@ local function makeLineIndicator(snapshot : VehicleSnapshot) : TreeNodeId
 	)
 end
 
-local function makeSpeedText(snapshot : VehicleSnapshot) : TreeNodeId
-	local currentSpeed = api.util.formatSpeed(snapshot.speed)
-	local tooltip = lang_util.format(_("APASZ_VEHICLE_READOUT_SPEED_TOOLTIP"), {
-		current = currentSpeed,
-		top = api.util.formatSpeed(snapshot.topSpeed),
+local function getSpeedIndicatorContent(speed : number, topSpeed : number) : IndicatorContent
+	local currentSpeed = api.util.formatSpeed(speed)
+	return {
+		iconPath = SPEED_ICON_PATH,
+		label = currentSpeed,
+		tooltip = lang_util.format(_("APASZ_VEHICLE_READOUT_SPEED_TOOLTIP"), {
+			current = currentSpeed,
+			top = api.util.formatSpeed(topSpeed),
+		}),
+	}
+end
+
+local function formatGameBarSpeedSummary(speed : number, topSpeed : number) : string
+	return lang_util.format(_("APASZ_VEHICLE_READOUT_GAME_BAR_SPEED_SUMMARY"), {
+		current = api.util.formatSpeed(speed),
+		top = api.util.formatSpeed(topSpeed),
 	})
-	return makeIndicator(
-		SPEED_ICON_PATH,
-		currentSpeed,
-		tooltip,
-		"Default"
-	)
+end
+
+local function getDestinationIndicatorContent(
+	destinationKind : DestinationKind,
+	destinationName : string
+) : IndicatorContent | nil
+	if destinationKind == "None" then
+		return nil
+	end
+	if destinationName == "" then
+		return logger.fail("Destination name is missing for " .. destinationKind)
+	end
+	if destinationKind == "NextStop" then
+		return {
+			iconPath = NEXT_STOP_ICON_PATH,
+			label = destinationName,
+			tooltip = lang_util.format(
+				_("APASZ_VEHICLE_READOUT_NEXT_STOP_TOOLTIP"),
+				{ name = destinationName }
+			),
+		}
+	elseif destinationKind == "Depot" then
+		return {
+			iconPath = STATE_DEPOT_ICON_PATH,
+			label = destinationName,
+			tooltip = lang_util.format(
+				_("APASZ_VEHICLE_READOUT_DEPOT_TOOLTIP"),
+				{ name = destinationName }
+			),
+		}
+	end
+	return logger.fail("Unhandled destination kind: " .. tostring(destinationKind))
+end
+
+local function makeIndicatorContent(content : IndicatorContent) : TreeNodeId
+	return makeIndicator(content.iconPath, content.label, content.tooltip, "Default")
+end
+
+local function makeNamedIndicatorContent(content : IndicatorContent) : TreeNodeId
+	return makeNamedIndicator(content.iconPath, content.label, content.tooltip, "Default")
+end
+
+local function makeSpeedText(snapshot : VehicleSnapshot) : TreeNodeId
+	return makeIndicatorContent(getSpeedIndicatorContent(snapshot.speed, snapshot.topSpeed))
 end
 
 -- Replacement recipes need a concrete layout root; vanilla fallbacks deliberately receive no style class.
@@ -1035,6 +1184,7 @@ local VehicleDisplay = react.RegisterRecipe("ApaszVehicleReadoutVehicleDisplay",
 		return builtin.BoxLayout{}
 	end
 
+	local floatingSpeedPlacement = vehicle_readout_policy.getFloatingSpeedPlacement(settings.speedDisplay)
 	local primaryChildren : {TreeNodeId} = {}
 	if settings.showVehicleName and snapshot.vehicleName ~= "" then
 		primaryChildren[#primaryChildren + 1] = makeStripedNamedIndicator(
@@ -1044,7 +1194,7 @@ local VehicleDisplay = react.RegisterRecipe("ApaszVehicleReadoutVehicleDisplay",
 			snapshot.vehicleColor
 		)
 	end
-	if settings.speedPlacement == "Below" then
+	if floatingSpeedPlacement == "Below" then
 		primaryChildren[#primaryChildren + 1] = makeSpeedText(snapshot)
 	end
 	local hasNamedDepotDestination = settings.showDestination
@@ -1089,12 +1239,11 @@ local VehicleDisplay = react.RegisterRecipe("ApaszVehicleReadoutVehicleDisplay",
 		secondaryChildren[#secondaryChildren + 1] = makeLineIndicator(snapshot)
 	end
 	if vehicle_readout_policy.shouldShowNextStop(settings.showDestination, snapshot.destinationKind) then
-		secondaryChildren[#secondaryChildren + 1] = makeNamedIndicator(
-			NEXT_STOP_ICON_PATH,
-			snapshot.destinationName,
-			lang_util.format(_("APASZ_VEHICLE_READOUT_NEXT_STOP_TOOLTIP"), { name = snapshot.destinationName }),
-			"Default"
-		)
+		local destination = getDestinationIndicatorContent(snapshot.destinationKind, snapshot.destinationName)
+		if destination == nil then
+			return logger.fail("Expected next-stop indicator content")
+		end
+		secondaryChildren[#secondaryChildren + 1] = makeNamedIndicatorContent(destination)
 	end
 	local statusChildren : {TreeNodeId} = {}
 	if stateIndicator ~= nil then
@@ -1114,7 +1263,7 @@ local VehicleDisplay = react.RegisterRecipe("ApaszVehicleReadoutVehicleDisplay",
 	end
 
 	local rows : {TreeNodeId} = {}
-	if settings.speedPlacement == "Above" then
+	if floatingSpeedPlacement == "Above" then
 		appendDisplayRow(rows, { makeSpeedText(snapshot) })
 	end
 	rows[#rows + 1] = builtin.BoxLayout{
@@ -1201,12 +1350,406 @@ local VehicleReadoutLineHudIconMaster = react.RegisterRecipe("ApaszVehicleReadou
 	)
 end)
 
+local function resolveGameBarTargetEntity(activeSelectionEntity : Engine.Entity) : Engine.Entity
+	local followedEntity = api.gui.camera.getFollowEntity()[1]
+	if getTransportVehicle(followedEntity) ~= nil then
+		return followedEntity
+	end
+
+	if getTransportVehicle(activeSelectionEntity) ~= nil
+		and isVehicleDetailWindowVisible(activeSelectionEntity)
+	then
+		return activeSelectionEntity
+	end
+	return INVALID_ENTITY
+end
+
+local function useGameBarVehicleEntity() : Engine.Entity
+	local activeSelectionEntity : ReactRefT<Engine.Entity> = react.useRef(INVALID_ENTITY)
+	local state : ReactStateT<Engine.Entity> = react.useState(INVALID_ENTITY)
+	local function enqueueTargetUpdate()
+		react.enqueueJoin(function()
+			if state:hasExpired() then
+				return
+			end
+			local targetEntity = resolveGameBarTargetEntity(activeSelectionEntity:get())
+			if state:old() ~= targetEntity then
+				state:set(targetEntity)
+			end
+		end, "ApaszVehicleReadout:updateGameBarTargetEntity")
+	end
+
+	react.onEvent("selectEntity", function(_ : string, rawEvent : any)
+		if type(rawEvent) ~= "table" then
+			logger.fail("selectEntity event must be a table")
+			return
+		end
+		local event = rawEvent as SelectEntityEvent
+		if type(event.entity) ~= "number" then
+			logger.fail("selectEntity event is missing its entity")
+			return
+		end
+		activeSelectionEntity:set(event.entity)
+		enqueueTargetUpdate()
+	end)
+	local function clearActiveSelection()
+		activeSelectionEntity:set(INVALID_ENTITY)
+		enqueueTargetUpdate()
+	end
+	react.onEvent("selectNothing", clearActiveSelection)
+	react.onEvent("selectMarker", clearActiveSelection)
+	react.onEvent("selectViewKey", clearActiveSelection)
+	react.onEvent("closeAllWindows", clearActiveSelection)
+	react.onMount(enqueueTargetUpdate)
+	react.onStepTimer(enqueueTargetUpdate, UI_VISIBILITY_UPDATE_INTERVAL_SECONDS)
+	return state:old()
+end
+
+local function makeGameBarIndicator(content : IndicatorContent, summaryTooltip : string) : TreeNodeId
+	return builtin.Component{
+		meta = {
+			class = "vehicle-readout-game-bar-indicator",
+			tooltip = summaryTooltip,
+		},
+		layout = builtin.BoxLayout{
+			orientation = builtin.type.Orientation.Horizontal,
+			children = {
+				builtin.ImageView{
+					meta = { class = "vehicle-readout-game-bar-icon" },
+					path = content.iconPath,
+					scaling = builtin.type.ImageViewScaling.AutoFit,
+				},
+				builtin.TextView{
+					meta = { class = "vehicle-readout-game-bar-label, font-scale-headline" },
+					text = truncateNamedIndicatorLabel(content.label),
+				},
+			},
+		},
+	}
+end
+
+local function sampleGameBarSpeed(
+	entity : Engine.Entity,
+	previous? : GameBarSpeedSnapshot
+) : GameBarSpeedSnapshot
+	if not vehicle_readout_policy.shouldShowGameBarSpeed(settings.speedDisplay)
+		or getTransportVehicle(entity) == nil
+	then
+		if previous ~= nil and previous.entity == entity and not previous.available then
+			return previous
+		end
+		return { entity = entity, available = false, speed = 0.0 }
+	end
+
+	local speed = api.engine.util.vehicle.getSpeed(entity)
+	if previous ~= nil
+		and previous.entity == entity
+		and previous.available
+		and previous.speed == speed
+	then
+		return previous
+	end
+	return { entity = entity, available = true, speed = speed }
+end
+
+local function makeEmptyGameBarSnapshot(entity : Engine.Entity) : GameBarSnapshot
+	return {
+		entity = entity,
+		available = false,
+		vehicleName = "",
+		vehicleIcon = FALLBACK_VEHICLE_ICON_PATH,
+		speed = 0.0,
+		topSpeed = 0.0,
+		lineName = "",
+		destinationKind = "None",
+		destinationName = "",
+		stateLabel = "",
+		stateIcon = STATE_MOVING_ICON_PATH,
+		loadCount = 0,
+		loadCapacity = 0,
+		condition = 1.0,
+		conditionLabel = "",
+		conditionIcon = "",
+		cargoSummaries = {},
+	}
+end
+
+local function unavailableGameBarSnapshot(
+	entity : Engine.Entity,
+	previous? : GameBarSnapshot
+) : GameBarSnapshot
+	if previous ~= nil and previous.entity == entity and not previous.available then
+		return previous
+	end
+	return makeEmptyGameBarSnapshot(entity)
+end
+
+local function sampleGameBarVehicle(
+	entity : Engine.Entity,
+	previous? : GameBarSnapshot
+) : GameBarSnapshot
+	local transportVehicle = getTransportVehicle(entity)
+	if transportVehicle == nil then
+		return unavailableGameBarSnapshot(entity, previous)
+	end
+	local vehicle = transportVehicle as Engine.Component.TransportVehicle
+	local speed = api.engine.util.vehicle.getSpeed(entity)
+	local vehicleData = api.engine.system.carriageListSystem.getVehicleData(entity)
+	local lineName, _, destinationKind, destinationName = getLineAndDestination(vehicle, true)
+	local operationalState = getOperationalState(vehicle, speed)
+	local condition = vehicle_util.getAvgMaintenanceState(entity)
+	local cargoSummaries : {GameBarCargoSummary} = {}
+	local loadCount = 0
+	local loadCapacity = 0
+	for cargoTypeIndex, capacity in ipairs(vehicle.config.capacities) do
+		if capacity > 0 then
+			local cargoType = (cargoTypeIndex - 1) as CargoTypeId
+			local count = api.engine.system.simEntityAtVehicleSystem.getVehicleSimEntitiesCountForCargoType(
+				entity,
+				cargoType
+			)
+			local averageQuality : number | nil = nil
+			local badCount = 0
+			if count > 0 then
+				local quality = api.engine.util.cargo.getCargoQualityDataForVehicle(entity, cargoType)
+				averageQuality = quality.averageQuality
+				badCount = quality.countBad or 0
+			end
+			cargoSummaries[#cargoSummaries + 1] = {
+				cargoType = cargoType,
+				name = cargo_util.getCargoNameById(cargoType),
+				count = count,
+				capacity = capacity,
+				averageQuality = averageQuality,
+				badCount = badCount,
+			}
+			loadCount = loadCount + count
+			loadCapacity = loadCapacity + capacity
+		end
+	end
+
+	return {
+		entity = entity,
+		available = true,
+		vehicleName = getEntityName(entity),
+		vehicleIcon = getVehicleIcon(entity),
+		speed = speed,
+		topSpeed = vehicleData.topSpeed,
+		lineName = lineName,
+		destinationKind = destinationKind,
+		destinationName = destinationName,
+		stateLabel = operationalState.label,
+		stateIcon = operationalState.icon,
+		loadCount = loadCount,
+		loadCapacity = loadCapacity,
+		condition = condition,
+		conditionLabel = vehicle_util.getConditionText(condition),
+		conditionIcon = vehicle_util.getConditionIcon(condition),
+		cargoSummaries = cargoSummaries,
+	}
+end
+
+local function getGameBarLoadContent(snapshot : GameBarSnapshot) : IndicatorContent
+	if snapshot.loadCapacity <= 0 then
+		return { iconPath = LOAD_ICON_PATH, label = UNAVAILABLE_LABEL, tooltip = "" }
+	end
+	local fraction = getLoadFraction(snapshot.loadCount, snapshot.loadCapacity)
+	return {
+		iconPath = LOAD_ICON_PATH,
+		label = formatCargoCountValues(snapshot.loadCount, snapshot.loadCapacity)
+			.. " ("
+			.. api.util.toStringPercentPrecision(fraction, 0)
+			.. ")",
+		tooltip = formatLoadTooltip(snapshot.loadCount, snapshot.loadCapacity),
+	}
+end
+
+local function getGameBarStatContent(snapshot : GameBarSnapshot) : IndicatorContent | nil
+	local stat = settings.gameBarStat
+	if stat == "Off" then
+		return nil
+	elseif stat == "Destination" then
+		local destination = getDestinationIndicatorContent(snapshot.destinationKind, snapshot.destinationName)
+		if destination ~= nil then
+			return destination as IndicatorContent
+		end
+		return {
+			iconPath = NEXT_STOP_ICON_PATH,
+			label = UNAVAILABLE_LABEL,
+			tooltip = "",
+		}
+	elseif stat == "Line" then
+		return {
+			iconPath = LINE_ICON_PATH,
+			label = snapshot.lineName ~= "" and snapshot.lineName or UNAVAILABLE_LABEL,
+			tooltip = "",
+		}
+	elseif stat == "State" then
+		return {
+			iconPath = snapshot.stateIcon,
+			label = snapshot.stateLabel,
+			tooltip = snapshot.stateLabel,
+		}
+	elseif stat == "Load" then
+		return getGameBarLoadContent(snapshot)
+	elseif stat == "Condition" then
+		return {
+			iconPath = snapshot.conditionIcon,
+			label = snapshot.conditionLabel,
+			tooltip = "",
+		}
+	elseif stat == "VehicleName" then
+		return {
+			iconPath = snapshot.vehicleIcon,
+			label = snapshot.vehicleName ~= "" and snapshot.vehicleName or UNAVAILABLE_LABEL,
+			tooltip = "",
+		}
+	end
+	return logger.fail("Unhandled game-bar stat: " .. tostring(stat))
+end
+
+local function makeGameBarSummaryTooltip(
+	snapshot : GameBarSnapshot,
+	fastSpeed : GameBarSpeedSnapshot
+) : string
+	local sections : {string} = {}
+	sections[#sections + 1] = lang_util.format(
+		_("APASZ_VEHICLE_READOUT_VEHICLE_TOOLTIP"),
+		{ name = snapshot.vehicleName ~= "" and snapshot.vehicleName or UNAVAILABLE_LABEL }
+	)
+	if snapshot.lineName ~= "" then
+		sections[#sections + 1] = lang_util.format(
+			_("APASZ_VEHICLE_READOUT_LINE_TOOLTIP"),
+			{ name = snapshot.lineName }
+		)
+	else
+		sections[#sections + 1] = _("APASZ_VEHICLE_READOUT_SHOW_LINE") .. ": " .. UNAVAILABLE_LABEL
+	end
+	local destination = getDestinationIndicatorContent(snapshot.destinationKind, snapshot.destinationName)
+	if destination ~= nil then
+		sections[#sections + 1] = (destination as IndicatorContent).tooltip
+	else
+		sections[#sections + 1] = _("APASZ_VEHICLE_READOUT_SHOW_DESTINATION")
+			.. ": "
+			.. UNAVAILABLE_LABEL
+	end
+	sections[#sections + 1] = _("State") .. ": " .. snapshot.stateLabel
+	local hasCurrentFastSpeed = fastSpeed.available and fastSpeed.entity == snapshot.entity
+	local speed = hasCurrentFastSpeed and fastSpeed.speed or snapshot.speed
+	sections[#sections + 1] = formatGameBarSpeedSummary(speed, snapshot.topSpeed)
+	if snapshot.loadCapacity > 0 then
+		sections[#sections + 1] = formatLoadTooltip(snapshot.loadCount, snapshot.loadCapacity)
+	else
+		sections[#sections + 1] = _("APASZ_VEHICLE_READOUT_GAME_BAR_STAT_LOAD")
+			.. ": "
+			.. UNAVAILABLE_LABEL
+	end
+	sections[#sections + 1] = lang_util.format(_("APASZ_VEHICLE_READOUT_CONDITION_TOOLTIP"), {
+		condition = snapshot.conditionLabel,
+		percentage = api.util.toStringPercentPrecision(snapshot.condition, 1),
+	})
+
+	local passengerCargoType = cargo_util.getPassengerCargoTypeId()
+	local singleCargoLoadIsAggregate = #snapshot.cargoSummaries == 1
+		and snapshot.cargoSummaries[1].count == snapshot.loadCount
+		and snapshot.cargoSummaries[1].capacity == snapshot.loadCapacity
+	for __, cargo in ipairs(snapshot.cargoSummaries) do
+		local cargoHeading = cargo.name
+		if not singleCargoLoadIsAggregate then
+			cargoHeading = cargoHeading
+				.. ": "
+				.. formatCargoCountValues(cargo.count, cargo.capacity)
+				.. " ("
+				.. api.util.toStringPercentPrecision(getLoadFraction(cargo.count, cargo.capacity), 1)
+				.. ")"
+		end
+		local lines : {string} = { cargoHeading }
+		if cargo.averageQuality ~= nil then
+			local percentage = api.util.toStringPercentPrecision(cargo.averageQuality, 1)
+			local badCount = lang_util.formatInt(cargo.badCount)
+			local cargoCount = lang_util.formatInt(cargo.count)
+			local qualityTooltip = cargo.cargoType == passengerCargoType
+				and _("Happiness") .. ": " .. percentage
+					.. "\n" .. _("Unhappy") .. ": " .. badCount .. "/" .. cargoCount
+				or lang_util.format(_("APASZ_VEHICLE_READOUT_CARGO_QUALITY_TOOLTIP"), {
+					percentage = percentage,
+					bad = badCount,
+					count = cargoCount,
+				})
+			lines[#lines + 1] = "  " .. qualityTooltip:gsub("\n", "\n  ")
+		end
+		sections[#sections + 1] = table.concat(lines, "\n")
+	end
+	return table.concat(sections, "\n")
+end
+
+local GameBarVehicleReadout = react.RegisterPluginRecipe(
+	game_bar_widgets.GameBarInfoDisplayExtension,
+	"ApaszVehicleReadoutGameBar",
+	function() : TreeNodeId
+		ensureSettingsLoaded()
+		local showGameBarSpeed = vehicle_readout_policy.shouldShowGameBarSpeed(settings.speedDisplay)
+		if not showGameBarSpeed and settings.gameBarStat == "Off" then
+			return nil
+		end
+
+		local entity = useGameBarVehicleEntity()
+		local vehicleState = engine_react_util.useStepStateTimer(function(
+			previous? : GameBarSnapshot
+		) : GameBarSnapshot
+			return sampleGameBarVehicle(entity, previous)
+		end, settings.updateIntervalSeconds)
+		react.onStep(function()
+			if vehicleState:old().entity ~= entity then
+				vehicleState:set(sampleGameBarVehicle(entity))
+			end
+		end)
+		local snapshot = vehicleState:old()
+		local speedUpdateInterval = showGameBarSpeed
+			and GAME_BAR_SPEED_UPDATE_INTERVAL_SECONDS
+			or settings.updateIntervalSeconds
+		local speedState = engine_react_util.useStepStateTimer(function(
+			previous? : GameBarSpeedSnapshot
+		) : GameBarSpeedSnapshot
+			return sampleGameBarSpeed(entity, previous)
+		end, speedUpdateInterval)
+		local speedSnapshot = speedState:old()
+		if snapshot.entity ~= entity or not snapshot.available then
+			return nil
+		end
+		local summaryTooltip = makeGameBarSummaryTooltip(snapshot, speedSnapshot)
+		local children : {TreeNodeId} = {}
+		local statContent = getGameBarStatContent(snapshot)
+		if statContent ~= nil then
+			children[#children + 1] = makeGameBarIndicator(statContent, summaryTooltip)
+		end
+		if showGameBarSpeed then
+			local hasCurrentFastSpeed = speedSnapshot.available and speedSnapshot.entity == entity
+			local speed = hasCurrentFastSpeed and speedSnapshot.speed or snapshot.speed
+			children[#children + 1] = makeGameBarIndicator(
+				getSpeedIndicatorContent(speed, snapshot.topSpeed),
+				summaryTooltip
+			)
+		end
+		if #children == 0 then
+			return nil
+		end
+		table.insert(children, 1, gui_react_util.makeHorizontalSpacer())
+		return builtin.BoxLayout{
+			meta = { class = "vehicle-readout-game-bar" },
+			orientation = builtin.type.Orientation.Horizontal,
+			children = children,
+		}
+	end
+)
+
 local function doReplace(replacementApi : ReactReplacementApi)
-	settings = loadSettings()
+	ensureSettingsLoaded()
 	replacementApi.ReplaceRecipe(hud_icon_toolbox.HudIconMasterGame, VehicleReadoutHudIconMasterGame)
 	replacementApi.ReplaceRecipe(entity_window_hud.LineHudIconMaster, VehicleReadoutLineHudIconMaster)
 end
 
 return {
 	doReplace = doReplace,
+	GameBarVehicleReadout = GameBarVehicleReadout,
 }

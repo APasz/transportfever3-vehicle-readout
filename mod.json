@@ -33,22 +33,10 @@
             ]
         },
         {
-            "defaultIndex": 2,
-            "key": "apasz_vehicle_readout_speed_style",
-            "name": "APASZ_VEHICLE_READOUT_SHOW_SPEED",
-            "tooltip": "APASZ_VEHICLE_READOUT_SHOW_SPEED_TOOLTIP",
-            "uiType": "ComboBox",
-            "values": [
-                "APASZ_VEHICLE_READOUT_OFF",
-                "APASZ_VEHICLE_READOUT_SPEED_BELOW",
-                "APASZ_VEHICLE_READOUT_SPEED_ABOVE"
-            ]
-        },
-        {
-            "defaultIndex": 1,
-            "key": "apasz_vehicle_readout_show_load_percentage",
-            "name": "APASZ_VEHICLE_READOUT_SHOW_LOAD_PERCENTAGE",
-            "tooltip": "APASZ_VEHICLE_READOUT_SHOW_LOAD_PERCENTAGE_TOOLTIP",
+            "defaultIndex": 0,
+            "key": "apasz_vehicle_readout_show_vehicle_name",
+            "name": "APASZ_VEHICLE_READOUT_SHOW_VEHICLE_NAME",
+            "tooltip": "APASZ_VEHICLE_READOUT_SHOW_VEHICLE_NAME_TOOLTIP",
             "uiType": "CheckBox",
             "values": [
                 "APASZ_VEHICLE_READOUT_OFF",
@@ -56,10 +44,25 @@
             ]
         },
         {
+            "defaultIndex": 3,
+            "key": "apasz_vehicle_readout_speed_display",
+            "name": "APASZ_VEHICLE_READOUT_SHOW_SPEED",
+            "tooltip": "APASZ_VEHICLE_READOUT_SHOW_SPEED_TOOLTIP",
+            "uiType": "ComboBox",
+            "values": [
+                "APASZ_VEHICLE_READOUT_OFF",
+                "APASZ_VEHICLE_READOUT_SPEED_BELOW",
+                "APASZ_VEHICLE_READOUT_SPEED_BELOW_GAME_BAR",
+                "APASZ_VEHICLE_READOUT_SPEED_ABOVE",
+                "APASZ_VEHICLE_READOUT_SPEED_ABOVE_GAME_BAR",
+                "APASZ_VEHICLE_READOUT_SPEED_GAME_BAR_ONLY"
+            ]
+        },
+        {
             "defaultIndex": 0,
-            "key": "apasz_vehicle_readout_show_quality",
-            "name": "APASZ_VEHICLE_READOUT_SHOW_QUALITY",
-            "tooltip": "APASZ_VEHICLE_READOUT_SHOW_QUALITY_TOOLTIP",
+            "key": "apasz_vehicle_readout_show_line",
+            "name": "APASZ_VEHICLE_READOUT_SHOW_LINE",
+            "tooltip": "APASZ_VEHICLE_READOUT_SHOW_LINE_TOOLTIP",
             "uiType": "CheckBox",
             "values": [
                 "APASZ_VEHICLE_READOUT_OFF",
@@ -90,17 +93,6 @@
         },
         {
             "defaultIndex": 0,
-            "key": "apasz_vehicle_readout_show_line",
-            "name": "APASZ_VEHICLE_READOUT_SHOW_LINE",
-            "tooltip": "APASZ_VEHICLE_READOUT_SHOW_LINE_TOOLTIP",
-            "uiType": "CheckBox",
-            "values": [
-                "APASZ_VEHICLE_READOUT_OFF",
-                "APASZ_VEHICLE_READOUT_ON"
-            ]
-        },
-        {
-            "defaultIndex": 0,
             "key": "apasz_vehicle_readout_show_condition",
             "name": "APASZ_VEHICLE_READOUT_SHOW_CONDITION",
             "tooltip": "APASZ_VEHICLE_READOUT_SHOW_CONDITION_TOOLTIP",
@@ -111,14 +103,41 @@
             ]
         },
         {
-            "defaultIndex": 0,
-            "key": "apasz_vehicle_readout_show_vehicle_name",
-            "name": "APASZ_VEHICLE_READOUT_SHOW_VEHICLE_NAME",
-            "tooltip": "APASZ_VEHICLE_READOUT_SHOW_VEHICLE_NAME_TOOLTIP",
+            "defaultIndex": 1,
+            "key": "apasz_vehicle_readout_show_load_percentage",
+            "name": "APASZ_VEHICLE_READOUT_SHOW_LOAD_PERCENTAGE",
+            "tooltip": "APASZ_VEHICLE_READOUT_SHOW_LOAD_PERCENTAGE_TOOLTIP",
             "uiType": "CheckBox",
             "values": [
                 "APASZ_VEHICLE_READOUT_OFF",
                 "APASZ_VEHICLE_READOUT_ON"
+            ]
+        },
+        {
+            "defaultIndex": 0,
+            "key": "apasz_vehicle_readout_show_quality",
+            "name": "APASZ_VEHICLE_READOUT_SHOW_QUALITY",
+            "tooltip": "APASZ_VEHICLE_READOUT_SHOW_QUALITY_TOOLTIP",
+            "uiType": "CheckBox",
+            "values": [
+                "APASZ_VEHICLE_READOUT_OFF",
+                "APASZ_VEHICLE_READOUT_ON"
+            ]
+        },
+        {
+            "defaultIndex": 0,
+            "key": "apasz_vehicle_readout_game_bar_stat",
+            "name": "APASZ_VEHICLE_READOUT_GAME_BAR_STAT",
+            "tooltip": "APASZ_VEHICLE_READOUT_GAME_BAR_STAT_TOOLTIP",
+            "uiType": "ComboBox",
+            "values": [
+                "APASZ_VEHICLE_READOUT_OFF",
+                "APASZ_VEHICLE_READOUT_SHOW_DESTINATION",
+                "APASZ_VEHICLE_READOUT_SHOW_LINE",
+                "APASZ_VEHICLE_READOUT_SHOW_STATE",
+                "APASZ_VEHICLE_READOUT_GAME_BAR_STAT_LOAD",
+                "APASZ_VEHICLE_READOUT_SHOW_CONDITION",
+                "APASZ_VEHICLE_READOUT_SHOW_VEHICLE_NAME"
             ]
         },
         {
@@ -142,7 +161,7 @@
     "preRunScript": {
         "fileName": ""
     },
-    "revision": 1,
+    "revision": 2,
     "runScript": {
         "fileName": ""
     },

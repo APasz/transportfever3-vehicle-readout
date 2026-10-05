@@ -59,5 +59,31 @@ function data()
 		maxSize = { INDICATOR_LABEL_MAX_WIDTH, -1 },
 	})
 
+	a("R::ApaszVehicleReadoutGameBar", {
+		gravity = { -1, 0.5 },
+	})
+
+	a("R::ApaszVehicleReadoutGameBar > BoxLayout!vehicle-readout-game-bar", {
+		gravity = { -1, 0.5 },
+		innerSpacing = { 8, 0 },
+		outerSpacing = { 14, 0 },
+	})
+
+	a("R::ApaszVehicleReadoutGameBar Component!vehicle-readout-game-bar-indicator > BoxLayout", {
+		gravity = { 1, 0.5 },
+		innerSpacing = { 4, 0 },
+	})
+
+	a("R::ApaszVehicleReadoutGameBar ImageView!vehicle-readout-game-bar-icon", {
+		gravity = { 0.5, 0.5 },
+		size = { 18, 18 },
+	})
+
+	a("R::ApaszVehicleReadoutGameBar TextView!vehicle-readout-game-bar-label", {
+		gravity = { 1, 0.5 },
+		maxSize = { INDICATOR_LABEL_MAX_WIDTH, -1 },
+		textAlignment = { 1, 0.5 },
+	})
+
 	return result
 end
