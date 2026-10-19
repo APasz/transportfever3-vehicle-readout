@@ -8,6 +8,9 @@ from collections import Counter
 from pathlib import Path, PurePosixPath
 from typing import Literal, TypedDict, cast
 
+from metadata_description import render_description
+from mod_metadata import validate_metadata_localisations
+
 LOCALISATION_PATTERN: re.Pattern[str] = re.compile(r'_\("([A-Z][A-Z0-9_]+)"\)')
 PARAMETER_PATTERN: re.Pattern[str] = re.compile(r'"([a-z][a-z0-9_]+)"')
 PARAMETER_KEY_PATTERN: re.Pattern[str] = re.compile(
@@ -354,46 +357,6 @@ def validate_localisations(
     return english_strings
 
 
-def validate_metadata_localisations(
-    path: Path, supported_locales: set[str]
-) -> dict[str, str]:
-    strings = load_json_object(path)
-    actual_locales = set(strings)
-    if actual_locales != supported_locales:
-        missing = sorted(supported_locales - actual_locales)
-        unexpected = sorted(actual_locales - supported_locales)
-        raise ValueError(
-            f"Metadata locale mismatch: missing={missing}, unexpected={unexpected}"
-        )
-    required_keys = {"NAME", "SUMMARY", "DESCRIPTION"}
-    english_metadata: dict[str, str] | None = None
-    for locale in sorted(supported_locales):
-        locale_groups = strings.get(locale)
-        if not isinstance(locale_groups, dict):
-            raise TypeError(f"Expected metadata strings.{locale} to be an object")
-        default_group = require_string_map(
-            cast(dict[str, object], locale_groups).get(""),
-            f"metadata strings.{locale}['']",
-        )
-        if set(default_group) != required_keys:
-            missing = sorted(required_keys - set(default_group))
-            unexpected = sorted(set(default_group) - required_keys)
-            details = f"missing={missing}, unexpected={unexpected}"
-            raise ValueError(f"Metadata key mismatch for {locale}: {details}")
-        empty_keys = sorted(
-            key for key, value in default_group.items() if not value.strip()
-        )
-        if empty_keys:
-            raise ValueError(
-                f"Empty {locale} metadata localisation: {', '.join(empty_keys)}"
-            )
-        if locale == "en":
-            english_metadata = default_group
-    if english_metadata is None:
-        raise ValueError("Missing English metadata localisation")
-    return english_metadata
-
-
 def main() -> None:
     if len(sys.argv) != 3:
         raise ValueError("Usage: validate_resources.py MOD_ROOT GAME_ROOT")
@@ -405,22 +368,15 @@ def main() -> None:
     metadata = load_json_object(mod_root / "_metadata" / "modinfo.json")
     supported_locales = get_supported_locales(game_root)
     validate_metadata_icon(mod_root / "_metadata" / "0.png")
-    english_metadata = validate_metadata_localisations(
-        mod_root / "_metadata" / "strings.json", supported_locales
-    )
-    metadata_fields = {
-        "NAME": "name",
-        "SUMMARY": "summary",
-        "DESCRIPTION": "description",
-    }
-    for localisation_key, metadata_key in metadata_fields.items():
-        metadata_value = require_nonempty_string(
-            metadata.get(metadata_key), f"modinfo.{metadata_key}"
+    metadata_texts = validate_metadata_localisations(metadata, supported_locales)
+    source_url = require_nonempty_string(metadata.get("url_repo"), "modinfo.url_repo")
+    description_path = mod_root / "_metadata" / "description.html"
+    if description_path.read_text(encoding="utf-8") != render_description(
+        metadata_texts, source_url
+    ):
+        raise ValueError(
+            "HTML description does not match metadata; run python3 tools/metadata_description.py"
         )
-        if english_metadata[localisation_key] != metadata_value:
-            raise ValueError(
-                f"English metadata {localisation_key} does not match modinfo.{metadata_key}"
-            )
 
     mod_id = require_nonempty_string(manifest.get("modId"), "modId")
     parameters = parse_parameters(manifest.get("params"))

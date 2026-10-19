@@ -12,6 +12,23 @@ definitions and UI, runs the visibility/state/destination policy matrix, parses
 all Lua and JSON resources, verifies parameter and localisation consistency, and
 checks the metadata icon and referenced game GUI textures.
 
+Edit English metadata and its `localization` entries in `_metadata/modinfo.json`.
+Regenerate the multilingual HTML description after changing metadata text or the
+source URL:
+
+```sh
+python3 tools/metadata_description.py
+```
+
+Validation checks all game locales, metadata name/summary limits, and that the HTML
+description matches its metadata source. The common footer is maintained in
+`../tools/description_footer.html`. From `_modding`, run
+`python3 tools/mod_footer.py --write` to synchronise it across the mod projects,
+or use `--check` to detect drift. `python3 tools/check_descriptions.py` checks all
+mod metadata, HTML formatting, languages, and placeholders. HTML comments are
+excluded because the game can show them literally. These development tools must remain
+beside the mod projects when running the renderer or metadata validation.
+
 ## Manual UI checklist
 
 - Test UI scaling at 75%, 100%, 125%, and 150%.
